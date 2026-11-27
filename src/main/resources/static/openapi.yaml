@@ -34,7 +34,7 @@ paths:
   /api/v1/alumnos:
     get:
       summary: Lista alumnos del laboratorio
-      description: Conjunto pequeño sin paginación. Roles ALUMNO, DOCENTE o ADMIN.
+      description: Conjunto pequeño sin paginación. Roles DOCENTE o ADMIN.
       responses:
         '200':
           description: Lista, posiblemente vacía
@@ -77,6 +77,7 @@ paths:
         schema: {type: integer, format: int64}
     get:
       summary: Consulta un alumno
+      description: DOCENTE y ADMIN consultan cualquier alumno; ALUMNO solo el registro cuya matrícula coincide con su usuario (403 en otro caso).
       responses:
         '200':
           description: Alumno encontrado

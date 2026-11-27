@@ -50,4 +50,28 @@ class SeguridadTest {
             .with(csrf()).contentType(MediaType.APPLICATION_JSON).content(DATOS))
             .andExpect(status().isCreated());
     }
+
+    @Test void alumnoVeSuPropioRegistro() throws Exception {
+        when(service.buscar(1L)).thenReturn(new Alumno(1L, "A001", "Ada", "ada@u.mx", EstatusAlumno.ACTIVO));
+        mvc.perform(get("/api/v1/alumnos/1").with(httpBasic("a001", "alumno123")))
+            .andExpect(status().isOk());
+    }
+
+    @Test void alumnoNoVeElRegistroDeOtro() throws Exception {
+        // Rol y credenciales correctos: el 403 se debe a que el registro tiene otro propietario.
+        when(service.buscar(2L)).thenReturn(new Alumno(2L, "B002", "Grace", "grace@u.mx", EstatusAlumno.ACTIVO));
+        mvc.perform(get("/api/v1/alumnos/2").with(httpBasic("a001", "alumno123")))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test void alumnoNoPuedeListarATodos() throws Exception {
+        mvc.perform(get("/api/v1/alumnos").with(httpBasic("a001", "alumno123")))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test void docentePuedeVerCualquierRegistro() throws Exception {
+        when(service.buscar(2L)).thenReturn(new Alumno(2L, "B002", "Grace", "grace@u.mx", EstatusAlumno.ACTIVO));
+        mvc.perform(get("/api/v1/alumnos/2").with(httpBasic("docente", "docente123")))
+            .andExpect(status().isOk());
+    }
 }

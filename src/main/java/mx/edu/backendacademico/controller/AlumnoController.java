@@ -5,12 +5,16 @@ package mx.edu.backendacademico.controller;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import mx.edu.backendacademico.domain.Alumno;
 import mx.edu.backendacademico.dto.ActualizarAlumnoRequest;
 import mx.edu.backendacademico.dto.AlumnoMapper;
 import mx.edu.backendacademico.dto.AlumnoResponse;
 import mx.edu.backendacademico.dto.CrearAlumnoRequest;
 import mx.edu.backendacademico.service.AlumnoService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/alumnos")
@@ -32,7 +37,25 @@ public class AlumnoController {
 
     // GET consulta sin solicitar cambios de estado de negocio.
     @GetMapping("/{id}")
-    public AlumnoResponse buscar(@PathVariable Long id) { return AlumnoMapper.toResponse(service.buscar(id)); }
+    public AlumnoResponse buscar(@PathVariable Long id, Authentication autenticacion) {
+        // La lectura puede venir de la caché compartida; la autorización se decide después, por petición.
+        var alumno = service.buscar(id);
+        verificarPropietario(alumno, autenticacion);
+        return AlumnoMapper.toResponse(alumno);
+    }
+
+    // DOCENTE y ADMIN consultan cualquier registro; un ALUMNO solo el que lleva su matrícula.
+    private static void verificarPropietario(Alumno alumno, Authentication autenticacion) {
+        if (autenticacion == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        boolean personal = autenticacion.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(rol -> rol.equals("ROLE_DOCENTE") || rol.equals("ROLE_ADMIN"));
+        if (!personal && !alumno.matricula().equalsIgnoreCase(autenticacion.getName())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puedes consultar tu propio registro");
+        }
+    }
 
     // El servicio asigna identidad; ResponseEntity publica 201 y Location.
     @PostMapping

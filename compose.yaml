@@ -21,6 +21,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/academico
       DB_USER: academico
       DB_PASSWORD: academico
+      # Para observar accesos al repositorio: set SQL_LOG=DEBUG antes de "docker compose up -d".
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: ${SQL_LOG:-INFO}
     depends_on:
       postgres:
         condition: service_healthy
